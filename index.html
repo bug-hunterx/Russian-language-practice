@@ -3,34 +3,42 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#fff5fb" />
+<meta name="theme-color" content="#c0392b" />
 <title>ЧУ и ЩУ — игра</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%A7%A9%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%8E%86%3C/text%3E%3C/svg%3E" />
 <style>
   :root{
-    --bg:#fff5fb;
-    --ink:#2a2350;
-    --muted:#6b6792;
-    --chu:#e85a8b;
-    --shu:#7c5cff;
-    --ok:#1fb47a;
-    --bad:#e0466b;
+    --bg1:#ff4757;
+    --bg2:#b51a2b;
+    --ink:#ffffff;
+    --muted:rgba(255,255,255,.78);
+    --chu:#ffd43b;   /* ЧУ identity = sunny yellow */
+    --shu:#06aed5;   /* ЩУ identity = bright cyan  */
+    --ok:#aaf683;
+    --bad:#ffd166;
     --piece:#fde6f1;
     --piece2:#e3ddff;
     --piece3:#d9f1ff;
     --piece4:#fff0c2;
     --piece5:#d6f5dc;
-    --shadow:0 4px 0 rgba(40,30,70,.12), 0 10px 24px rgba(80,50,120,.12);
+    --shadow:0 4px 0 rgba(0,0,0,.18), 0 10px 24px rgba(0,0,0,.22);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  html,body{margin:0;padding:0;color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
     overscroll-behavior:none;user-select:none}
   body{min-height:100dvh;display:flex;flex-direction:column;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #ff7a85 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, #7a0e1c 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    background-attachment:fixed;
+  }
 
   header{padding:14px 16px 6px;text-align:center}
-  .title{font-size:22px;font-weight:800;letter-spacing:.5px;margin:0}
+  .title{font-size:22px;font-weight:800;letter-spacing:.5px;margin:0;
+    text-shadow:0 2px 0 rgba(0,0,0,.18)}
   .title .c{color:var(--chu)}
   .title .s{color:var(--shu)}
   .rule{font-size:13px;color:var(--muted);margin:4px 0 0}
@@ -38,7 +46,7 @@
   .scoreRow{display:flex;justify-content:space-between;align-items:center;
     padding:8px 16px}
   .score,.progress{font-size:13px;color:var(--muted);font-weight:600}
-  .score b{color:var(--ink);font-size:16px}
+  .score b{color:#fff;font-size:16px}
 
   main{flex:1;display:flex;flex-direction:column;justify-content:space-between;
     padding:8px 14px 18px;gap:10px}
@@ -47,21 +55,22 @@
     padding:18px 8px 8px}
 
   .word{font-size:30px;font-weight:800;letter-spacing:2px;min-height:42px;
-    display:flex;align-items:center;justify-content:center;gap:2px}
-  .word .slot{opacity:.35;border-bottom:3px dashed #c8c0e6;padding:0 6px;min-width:48px;text-align:center}
+    display:flex;align-items:center;justify-content:center;gap:2px;
+    color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+  .word .slot{opacity:.55;border-bottom:3px dashed rgba(255,255,255,.7);padding:0 6px;min-width:48px;text-align:center}
   .word .fill{color:var(--chu);animation:pop .35s ease}
   .word .fill.shu{color:var(--shu)}
   @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 
   .hint{font-size:14px;color:var(--muted);min-height:18px;text-align:center;
     transition:color .2s}
-  .hint.ok{color:var(--ok);font-weight:700}
-  .hint.bad{color:var(--bad);font-weight:700}
+  .hint.ok{color:#fffbcf;font-weight:700}
+  .hint.bad{color:#ffe5a8;font-weight:700}
 
   .piece{
     --bgp:var(--piece);
     background:var(--bgp);
-    color:var(--ink);
+    color:#2a2350;
     font-weight:800;
     font-size:30px;
     letter-spacing:1.5px;
@@ -84,37 +93,37 @@
   .btn{
     appearance:none;border:0;cursor:pointer;
     font:inherit;font-weight:900;font-size:34px;letter-spacing:2px;
-    padding:18px 28px;border-radius:22px;color:#fff;
+    padding:18px 28px;border-radius:22px;color:#2a2350;
     box-shadow:var(--shadow);
     transition:transform .08s ease, filter .15s ease;
     min-width:130px;
   }
   .btn:active{transform:translateY(2px) scale(.98)}
-  .btn.chu{background:linear-gradient(180deg,#ff85a8,var(--chu))}
-  .btn.shu{background:linear-gradient(180deg,#9b85ff,var(--shu))}
-  .btn.disabled{filter:grayscale(.5) opacity(.55);pointer-events:none}
+  .btn.chu{background:linear-gradient(180deg,#fff09a,#ffc83b);color:#3a2a00}
+  .btn.shu{background:linear-gradient(180deg,#7be3ff,#06aed5);color:#04263a}
+  .btn.disabled{filter:grayscale(.4) opacity(.55);pointer-events:none}
   .btn.flashOk{animation:flashOk .5s ease}
   .btn.flashBad{animation:shake .4s ease}
-  @keyframes flashOk{0%{box-shadow:0 0 0 0 rgba(31,180,122,.6)}100%{box-shadow:0 0 0 22px rgba(31,180,122,0)}}
+  @keyframes flashOk{0%{box-shadow:0 0 0 0 rgba(255,255,255,.7)}100%{box-shadow:0 0 0 22px rgba(255,255,255,0)}}
   @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 
   .collected{
-    background:#fff;border-radius:18px;padding:10px 12px;
-    box-shadow:0 2px 0 rgba(40,30,70,.06), 0 6px 18px rgba(80,50,120,.06);
+    background:rgba(255,255,255,.96);color:#2a2350;border-radius:18px;padding:10px 12px;
+    box-shadow:0 2px 0 rgba(0,0,0,.1), 0 6px 18px rgba(0,0,0,.18);
     max-height:34vh;overflow-y:auto;
   }
-  .collected h3{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+  .collected h3{margin:0 0 8px;font-size:13px;color:#6b6792;text-transform:uppercase;letter-spacing:1px;font-weight:700}
   .collected ul{list-style:none;margin:0;padding:0;display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px}
   .collected li{font-size:15px;font-weight:700;display:flex;align-items:baseline;gap:6px}
-  .collected li .k{font-size:11px;color:var(--muted);font-weight:600;min-width:54px}
-  .collected li .v.chu{color:var(--chu)}
-  .collected li .v.shu{color:var(--shu)}
+  .collected li .k{font-size:11px;color:#6b6792;font-weight:600;min-width:54px}
+  .collected li .v.chu{color:#c9931d}
+  .collected li .v.shu{color:#0683a0}
   .collected:empty{display:none}
 
   .toolbar{display:flex;gap:10px;justify-content:center;padding:4px 0 6px}
   .tool{
-    appearance:none;border:0;background:#fff;color:var(--ink);
+    appearance:none;border:0;background:rgba(255,255,255,.96);color:#2a2350;
     font:inherit;font-weight:700;font-size:13px;padding:10px 16px;
     border-radius:999px;box-shadow:var(--shadow);cursor:pointer;
   }
@@ -122,17 +131,19 @@
   .tool .ic{margin-right:6px}
 
   .finish{
-    position:fixed;inset:0;background:rgba(20,15,40,.55);
+    position:fixed;inset:0;background:rgba(40,0,5,.62);
     display:none;align-items:center;justify-content:center;
     padding:20px;z-index:5;
   }
   .finish.show{display:flex}
+  .finish #fw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .finish .card{
-    background:#fff;border-radius:22px;padding:22px;text-align:center;
+    position:relative;z-index:1;
+    background:#fff;color:#2a2350;border-radius:22px;padding:22px;text-align:center;
     max-width:340px;width:100%;box-shadow:var(--shadow);
   }
   .finish h2{margin:0 0 6px;font-size:22px}
-  .finish p{margin:6px 0 14px;color:var(--muted)}
+  .finish p{margin:6px 0 14px;color:#6b6792}
   .finish .big{font-size:46px;margin:8px 0}
   .finish .again{
     background:linear-gradient(180deg,#ffd86b,#ffae3b);
@@ -181,8 +192,9 @@
   </main>
 
   <div class="finish" id="finish" role="dialog" aria-modal="true">
+    <canvas id="fw" aria-hidden="true"></canvas>
     <div class="card">
-      <div class="big" id="finishEmoji">🎉</div>
+      <div class="big" id="finishEmoji">🎆</div>
       <h2 id="finishTitle">Молодец!</h2>
       <p id="finishText">Ты собрал все слова с ЧУ и ЩУ.</p>
       <button class="again" id="againBtn">Сыграть ещё</button>
@@ -190,25 +202,27 @@
   </div>
 
 <script>
-  // Each item: piece (the syllable on the puzzle piece), pair ('chu' or 'shu'),
-  // position 'pre' = ЧУ/ЩУ goes BEFORE the piece, 'post' = AFTER the piece.
+  // New word set. Each item: piece on the puzzle, pair (chu|shu),
+  // pos (pre = ЧУ/ЩУ goes BEFORE the piece, post = AFTER).
   const WORDS = [
-    {piece:"ЖАК",     pair:"chu", pos:"pre"},   // ЧУЖАК
-    {piece:"ПАЛЬЦЕ", pair:"shu", pos:"pre"},   // ЩУПАЛЬЦЕ
-    {piece:"ЛКИ",     pair:"chu", pos:"pre"},   // ЧУЛКИ
-    {piece:"ПОЛО",   pair:"shu", pos:"post"},  // ПОЛОЩУ
-    {piece:"ЧИ",     pair:"shu", pos:"post"},  // ЧИЩУ
-    {piece:"МОЛ",    pair:"chu", pos:"post"},  // МОЛЧУ
-    {piece:"ЧЕЛО",   pair:"chu", pos:"pre"},   // ЧУЧЕЛО
-    {piece:"ДО",     pair:"chu", pos:"pre"},   // ЧУДО
-    {piece:"УГО",    pair:"shu", pos:"post"},  // УГОЩУ
-    {piece:"ГРУ",    pair:"shu", pos:"post"},  // ГРУЩУ
-    {piece:"ГУН",    pair:"chu", pos:"pre"},   // ЧУГУН
-    {piece:"ПОИ",    pair:"shu", pos:"post"},  // ПОИЩУ
-    {piece:"КА",     pair:"shu", pos:"pre"},   // ЩУКА
-    {piece:"ДАК",    pair:"chu", pos:"pre"},   // ЧУДАК
-    {piece:"ЛАН",    pair:"chu", pos:"pre"},   // ЧУЛАН
-    {piece:"ВСТВО", pair:"chu", pos:"pre"},   // ЧУВСТВО
+    {piece:"ДЕСА",  pair:"chu", pos:"pre"},   // ЧУДЕСА
+    {piece:"ЛОК",   pair:"chu", pos:"pre"},   // ЧУЛОК
+    {piece:"ЖОЙ",   pair:"chu", pos:"pre"},   // ЧУЖОЙ
+    {piece:"ТКИЙ",  pair:"chu", pos:"pre"},   // ЧУТКИЙ
+    {piece:"ХО",    pair:"chu", pos:"post"},  // ХОЧУ
+    {piece:"КРИ",   pair:"chu", pos:"post"},  // КРИЧУ
+    {piece:"СКА",   pair:"chu", pos:"post"},  // СКАЧУ
+    {piece:"ПЛА",   pair:"chu", pos:"post"},  // ПЛАЧУ
+    {piece:"СТУ",   pair:"chu", pos:"post"},  // СТУЧУ
+    {piece:"ЛЕ",    pair:"chu", pos:"post"},  // ЛЕЧУ
+    {piece:"РИТЬ",  pair:"shu", pos:"pre"},   // ЩУРИТЬ
+    {piece:"ПЛЫЙ",  pair:"shu", pos:"pre"},   // ЩУПЛЫЙ
+    {piece:"И",     pair:"shu", pos:"post"},  // ИЩУ
+    {piece:"ПИ",    pair:"shu", pos:"post"},  // ПИЩУ
+    {piece:"ТРЕ",   pair:"shu", pos:"post"},  // ТРЕЩУ
+    {piece:"ТА",    pair:"shu", pos:"post"},  // ТАЩУ
+    {piece:"ПЛЕ",   pair:"shu", pos:"post"},  // ПЛЕЩУ
+    {piece:"ПРО",   pair:"shu", pos:"post"},  // ПРОЩУ
   ];
 
   const shuffle = a => {
@@ -246,7 +260,6 @@
     if (!w){ showFinish(); return; }
     pieceEl.textContent = w.piece;
     pieceEl.style.setProperty("--bgp", PIECE_COLORS[state.idx % PIECE_COLORS.length]);
-    // Build the word skeleton with empty slot for ЧУ/ЩУ.
     wordEl.innerHTML = "";
     const slot = document.createElement("span");
     slot.className = "slot";
@@ -297,7 +310,6 @@
       scoreEl.textContent = state.score;
       btn.classList.add("flashOk");
       other.classList.add("disabled");
-      // Fill the slot
       const slot = document.getElementById("slot");
       slot.textContent = which === "chu" ? "ЧУ" : "ЩУ";
       slot.className = "fill " + (which === "shu" ? "shu" : "");
@@ -314,7 +326,6 @@
       btn.classList.add("flashBad");
       hintEl.textContent = "Не то — попробуй другое сочетание.";
       hintEl.className = "hint bad";
-      // Allow re-try with the other button
       btn.classList.add("disabled");
       setTimeout(() => { state.locked = false; }, 350);
     }
@@ -331,15 +342,127 @@
     });
   }
 
+  /* ------------------------------ Fireworks ------------------------------ */
+  const fw = {
+    canvas: null,
+    ctx: null,
+    parts: [],
+    running: false,
+    raf: 0,
+    nextLaunch: 0,
+    colors: ["#ffd43b","#06aed5","#ff6b6b","#a3f7bf","#fff09a","#ffffff","#ffafcc","#9b85ff"],
+  };
+
+  function sizeCanvas(){
+    if (!fw.canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    fw.canvas.width  = fw.canvas.clientWidth  * dpr;
+    fw.canvas.height = fw.canvas.clientHeight * dpr;
+    fw.ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  function explode(x, y, color){
+    const count = 36 + Math.floor(Math.random()*24);
+    const baseSpeed = 2 + Math.random()*1.6;
+    for (let i = 0; i < count; i++){
+      const a = (i / count) * Math.PI * 2 + Math.random()*0.1;
+      const s = baseSpeed * (0.6 + Math.random()*0.8);
+      fw.parts.push({
+        x, y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        life: 1,
+        decay: 0.012 + Math.random()*0.012,
+        size: 1.5 + Math.random()*2,
+        color,
+      });
+    }
+  }
+
+  function launchRandom(){
+    const w = fw.canvas.clientWidth;
+    const h = fw.canvas.clientHeight;
+    const x = w * (0.1 + Math.random()*0.8);
+    const y = h * (0.15 + Math.random()*0.4);
+    const c = fw.colors[Math.floor(Math.random()*fw.colors.length)];
+    explode(x, y, c);
+  }
+
+  function fwTick(){
+    if (!fw.running) return;
+    const ctx = fw.ctx;
+    const w = fw.canvas.clientWidth;
+    const h = fw.canvas.clientHeight;
+    // fade trail
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(0,0,w,h);
+
+    const now = performance.now();
+    if (now >= fw.nextLaunch){
+      launchRandom();
+      // occasional double pop
+      if (Math.random() < 0.35) setTimeout(launchRandom, 120);
+      fw.nextLaunch = now + 350 + Math.random()*450;
+    }
+
+    const next = [];
+    for (const p of fw.parts){
+      p.vx *= 0.985;
+      p.vy = p.vy * 0.985 + 0.04; // gravity
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      if (p.life > 0 && p.y < h + 20){
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+        next.push(p);
+      }
+    }
+    ctx.globalAlpha = 1;
+    fw.parts = next;
+    fw.raf = requestAnimationFrame(fwTick);
+  }
+
+  function startFireworks(){
+    fw.canvas = document.getElementById("fw");
+    fw.ctx = fw.canvas.getContext("2d");
+    sizeCanvas();
+    fw.parts.length = 0;
+    fw.running = true;
+    fw.nextLaunch = performance.now();
+    // immediate triple burst
+    setTimeout(launchRandom, 0);
+    setTimeout(launchRandom, 180);
+    setTimeout(launchRandom, 360);
+    fwTick();
+  }
+
+  function stopFireworks(){
+    fw.running = false;
+    if (fw.raf) cancelAnimationFrame(fw.raf);
+    if (fw.ctx) fw.ctx.clearRect(0,0,fw.canvas.width,fw.canvas.height);
+    fw.parts.length = 0;
+  }
+
+  window.addEventListener("resize", () => { if (fw.running) sizeCanvas(); });
+
+  /* ------------------------------------------------------------------- */
+
   function showFinish(){
     const total = state.order.length;
     $("finishTitle").textContent = state.score === total ? "Отлично!" : "Молодец!";
     $("finishText").textContent = `Правильных слов: ${state.score} из ${total}.`;
-    $("finishEmoji").textContent = state.score === total ? "🏆" : "🎉";
+    $("finishEmoji").textContent = state.score === total ? "🏆" : "🎆";
     finish.classList.add("show");
+    // small delay so the overlay paints before sizing canvas
+    requestAnimationFrame(startFireworks);
   }
 
   function reset(){
+    stopFireworks();
     state.order = shuffle(WORDS);
     state.idx = 0;
     state.score = 0;
@@ -359,7 +482,6 @@
     if (w) speak(w.piece);
   });
 
-  // Keyboard shortcuts (handy if opened on a laptop)
   document.addEventListener("keydown", e => {
     if (e.key === "1" || e.key.toLowerCase() === "ч") choose("chu");
     if (e.key === "2" || e.key.toLowerCase() === "щ") choose("shu");
