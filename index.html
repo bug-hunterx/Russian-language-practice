@@ -1,333 +1,723 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#c0392b" />
-<title>ЧА ЩА ЧУ ЩУ — игры</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%8E%86%3C/text%3E%3C/svg%3E" />
+<meta name="theme-color" content="#0ea5e9" />
+<title>Race Around the World</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%8C%8D%3C/text%3E%3C/svg%3E" />
 <style>
   :root{
-    --bg1:#ff4757;
-    --bg2:#b51a2b;
-    --ink:#ffffff;
-    --muted:rgba(255,255,255,.78);
-    --chu:#ffd43b;
-    --shu:#06aed5;
-    --piece:#fde6f1;
-    --piece2:#e3ddff;
-    --piece3:#d9f1ff;
-    --piece4:#fff0c2;
-    --piece5:#d6f5dc;
-    --shadow:0 4px 0 rgba(0,0,0,.18), 0 10px 24px rgba(0,0,0,.22);
+    --sky1:#7dd3fc;
+    --sky2:#0284c7;
+    --ink:#0f172a;
+    --muted:#475569;
+    --line:#fb923c;
+    --line2:#f97316;
+    --card:#ffffff;
+    --gold:#fbbf24;
+    --shadow:0 6px 18px rgba(2,18,40,.18);
+    --shadow-sm:0 2px 8px rgba(2,18,40,.14);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0;color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-    overscroll-behavior:none;user-select:none}
-  body{min-height:100dvh;display:flex;flex-direction:column;
+  html,body{margin:0;padding:0;height:100%;overscroll-behavior:none;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--ink)}
+  body{
+    display:flex;flex-direction:column;height:100dvh;background:linear-gradient(180deg,var(--sky1),var(--sky2));
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    background:
-      radial-gradient(1200px 600px at 20% -10%, #ff7a85 0%, transparent 60%),
-      radial-gradient(900px 500px at 100% 110%, #7a0e1c 0%, transparent 55%),
-      linear-gradient(180deg, var(--bg1), var(--bg2));
-    background-attachment:fixed;
+  }
+  button{font:inherit}
+
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;color:#fff;
+  }
+  header .logo{font-weight:900;font-size:18px;letter-spacing:.3px;
+    text-shadow:0 2px 0 rgba(0,0,0,.15);display:flex;gap:8px;align-items:center}
+  header .logo .globe{font-size:22px}
+  header .iconBtn{
+    width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.95);
+    color:#0f172a;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow-sm);cursor:pointer;line-height:1
+  }
+  header .iconBtn:active{transform:translateY(1px)}
+
+  main{flex:1;display:flex;flex-direction:column;min-height:0;padding:0 10px 10px;gap:10px}
+
+  .mapWrap{position:relative;flex:1;min-height:0;border-radius:18px;overflow:hidden;
+    box-shadow:var(--shadow);background:#cfe7f5}
+  #map{position:absolute;inset:0;background:#cfe7f5}
+  .leaflet-container{font-family:inherit}
+
+  .legend{
+    position:absolute;top:8px;left:8px;background:rgba(255,255,255,.94);
+    border-radius:10px;padding:6px 8px;font-size:11px;color:var(--muted);
+    box-shadow:var(--shadow-sm);z-index:500;display:flex;align-items:center;gap:6px;font-weight:600;
+    pointer-events:none;
+  }
+  .legend .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+
+  /* Player tokens */
+  .pt{background:transparent;border:0}
+  .ptInner{
+    width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:#fff;border:3px solid #fff;
+    box-shadow:0 4px 10px rgba(0,0,0,.28);
+    position:relative;left:-19px;top:-19px;
+  }
+  .ptInner.king::after{
+    content:"👑";position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:18px;
+    filter:drop-shadow(0 1px 0 rgba(0,0,0,.3));
   }
 
-  header{padding:14px 16px 6px;text-align:center;position:relative}
-  .title{font-size:21px;font-weight:800;letter-spacing:.5px;margin:0;
-    text-shadow:0 2px 0 rgba(0,0,0,.18)}
-  .title .c{color:var(--chu)}
-  .title .s{color:var(--shu)}
-  .rule{font-size:13px;color:var(--muted);margin:4px 14px 0}
+  /* Route dot */
+  .stopDot{background:transparent;border:0}
+  .stopDotInner{
+    width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--line);
+    box-shadow:0 1px 3px rgba(0,0,0,.25);position:relative;left:-7px;top:-7px;
+  }
+  .stopDotInner.start{background:#22c55e;border-color:#15803d}
+  .stopDotInner.end{background:var(--gold);border-color:#92400e;width:18px;height:18px;left:-9px;top:-9px}
 
-  .backBtn{position:absolute;top:14px;left:12px;width:38px;height:38px;
-    border-radius:50%;border:0;background:rgba(255,255,255,.96);color:#2a2350;
-    font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;
-    box-shadow:var(--shadow);cursor:pointer;line-height:1}
-  .backBtn[hidden]{display:none}
-
-  main{flex:1;display:flex;flex-direction:column;padding:8px 14px 18px;gap:10px}
-
-  .screen[hidden]{display:none}
-
-  /* ---------------- MENU ---------------- */
-  .menu{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 0}
-  .menuCards{display:grid;gap:14px;width:100%;max-width:420px}
-  .menuCard{
+  /* Player panel */
+  .players{
+    background:var(--card);border-radius:18px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;max-height:46vh;overflow:hidden;flex-shrink:0;
+  }
+  .playersHead{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px 6px;border-bottom:1px solid #f1f5f9}
+  .playersHead .t{font-weight:800;font-size:14px}
+  .playersHead .h{font-size:11px;color:var(--muted)}
+  .playerList{list-style:none;margin:0;padding:6px;overflow-y:auto;flex:1}
+  .playerRow{
+    display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;
+    padding:8px;border-radius:12px;
+  }
+  .playerRow + .playerRow{border-top:1px solid #f1f5f9}
+  .avatar{
+    width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:22px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18);position:relative;
+  }
+  .avatar.king::after{content:"👑";position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:14px}
+  .pInfo{min-width:0}
+  .pName{font-weight:800;font-size:15px;display:flex;align-items:center;gap:6px}
+  .pName .editBtn{background:none;border:0;color:#94a3b8;cursor:pointer;font-size:13px;padding:0 4px}
+  .pName .editBtn:hover{color:#475569}
+  .pMeta{font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center;margin-top:2px}
+  .pMeta .flag{font-size:14px}
+  .progressBar{
+    height:6px;background:#e2e8f0;border-radius:3px;margin-top:6px;overflow:hidden;
+  }
+  .progressBar > div{height:100%;background:linear-gradient(90deg,#fbbf24,#f97316);transition:width .6s}
+  .winBtn{
     appearance:none;border:0;cursor:pointer;
-    background:rgba(255,255,255,.97);color:#2a2350;
-    border-radius:20px;padding:18px;text-align:left;
-    display:flex;align-items:center;gap:14px;
+    background:linear-gradient(180deg,#fde68a,#f59e0b);color:#3a2a00;
+    font-weight:900;font-size:14px;padding:10px 14px;border-radius:12px;
+    box-shadow:var(--shadow-sm);min-width:80px;display:flex;align-items:center;gap:6px;justify-content:center;
+  }
+  .winBtn:active{transform:translateY(1px)}
+  .winBtn.done{background:linear-gradient(180deg,#d9f99d,#65a30d);color:#1a2e05}
+  .winBtn .ic{font-size:14px}
+  .addBtn{
+    border:0;background:#f1f5f9;color:#0f172a;
+    font-weight:700;font-size:14px;padding:10px;margin:6px;border-radius:12px;cursor:pointer;
+  }
+  .addBtn:active{background:#e2e8f0}
+
+  /* Modal */
+  .modal{
+    position:fixed;inset:0;background:rgba(2,18,40,.55);
+    display:none;align-items:flex-end;justify-content:center;padding:0;z-index:1000;
+  }
+  .modal.show{display:flex}
+  @media (min-width:560px){
+    .modal{align-items:center;padding:24px}
+  }
+  .modalCard{
+    background:#fff;color:#0f172a;border-radius:22px 22px 0 0;padding:18px;
+    max-width:460px;width:100%;box-shadow:var(--shadow);
+    max-height:90dvh;overflow-y:auto;
+  }
+  @media (min-width:560px){.modalCard{border-radius:22px}}
+  .modalCard h2{margin:0 0 6px;font-size:20px;font-weight:900;display:flex;align-items:center;gap:8px}
+  .modalCard p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.4}
+
+  input.field{
+    width:100%;border:2px solid #e2e8f0;border-radius:12px;padding:12px 14px;
+    font:inherit;font-size:16px;color:var(--ink);margin-bottom:12px;
+  }
+  input.field:focus{outline:none;border-color:#0ea5e9}
+
+  .pickerLabel{font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin:8px 0 6px}
+  .emojiPicker{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin-bottom:10px}
+  .emojiPicker button{
+    border:2px solid transparent;background:#f1f5f9;border-radius:10px;padding:8px 0;
+    font-size:22px;cursor:pointer;line-height:1;
+  }
+  .emojiPicker button.sel{border-color:#0ea5e9;background:#e0f2fe}
+
+  .colorPicker{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:14px}
+  .colorPicker button{
+    width:100%;aspect-ratio:1/1;border-radius:50%;border:3px solid #fff;cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+  }
+  .colorPicker button.sel{outline:3px solid #0ea5e9;outline-offset:2px}
+
+  .modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap}
+  .btnRow{display:flex;flex-direction:column;gap:8px}
+  .primary{
+    background:linear-gradient(180deg,#38bdf8,#0284c7);color:#fff;border:0;font-weight:800;
+    padding:12px 18px;border-radius:12px;cursor:pointer;font-size:15px;box-shadow:var(--shadow-sm);
+  }
+  .primary:active{transform:translateY(1px)}
+  .primary:disabled{opacity:.5;cursor:not-allowed}
+  .cta{
+    background:linear-gradient(180deg,#fde68a,#f59e0b);color:#3a2a00;border:0;font-weight:900;
+    padding:14px 22px;border-radius:14px;cursor:pointer;font-size:16px;box-shadow:var(--shadow);width:100%
+  }
+  .cta:active{transform:translateY(1px)}
+  .ghost{
+    background:#f1f5f9;color:#0f172a;border:0;font-weight:700;
+    padding:11px 16px;border-radius:12px;cursor:pointer;font-size:14px;
+  }
+  .ghost:active{background:#e2e8f0}
+  .danger{
+    background:#fee2e2;color:#991b1b;border:0;font-weight:700;
+    padding:11px 16px;border-radius:12px;cursor:pointer;font-size:14px;
+  }
+
+  .setupList{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+  .setupChip{
+    display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;background:#f1f5f9;
+    border-radius:999px;font-size:14px;font-weight:700;
+  }
+  .setupChip .av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:16px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .setupChip .rm{border:0;background:none;cursor:pointer;color:#94a3b8;font-size:14px;padding:0 4px}
+
+  /* Celebration */
+  .celebrate{
+    position:fixed;inset:0;background:rgba(2,18,40,.6);
+    display:none;align-items:center;justify-content:center;padding:20px;z-index:1100;
+  }
+  .celebrate.show{display:flex}
+  .celebrate canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .celebrateCard{
+    position:relative;z-index:1;background:#fff;border-radius:24px;padding:24px;
+    text-align:center;max-width:340px;width:100%;box-shadow:var(--shadow);
+  }
+  .celebrateCard .trophy{font-size:64px;line-height:1;margin-bottom:8px}
+  .celebrateCard h2{margin:0 0 6px;font-size:22px;font-weight:900}
+  .celebrateCard p{margin:6px 0 16px;color:var(--muted)}
+
+  .info{
+    position:fixed;inset:0;background:rgba(2,18,40,.4);
+    display:none;align-items:flex-end;justify-content:center;padding:0;z-index:900;
+  }
+  .info.show{display:flex}
+  .infoCard{
+    background:#fff;border-radius:18px 18px 0 0;padding:16px 18px;max-width:460px;width:100%;
     box-shadow:var(--shadow);
-    transition:transform .08s ease;
   }
-  .menuCard:active{transform:translateY(2px) scale(.99)}
-  .menuCard .emoji{font-size:40px;line-height:1;flex-shrink:0}
-  .menuCard .t{font-size:16px;font-weight:800;line-height:1.2}
-  .menuCard .d{font-size:13px;color:#6b6792;margin-top:4px;line-height:1.3}
-
-  .scoreRow{display:flex;justify-content:space-between;align-items:center;padding:0 4px}
-  .score,.progress{font-size:13px;color:var(--muted);font-weight:600}
-  .score b{color:#fff;font-size:16px}
-
-  /* ---------------- GAME 1 (pair matching) ---------------- */
-  .g1Stage{display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 8px 4px}
-  .word{font-size:30px;font-weight:800;letter-spacing:2px;min-height:42px;
-    display:flex;align-items:center;justify-content:center;gap:2px;
-    color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2)}
-  .word .slot{opacity:.55;border-bottom:3px dashed rgba(255,255,255,.7);padding:0 6px;min-width:48px;text-align:center}
-  .word .fill{color:var(--chu);animation:pop .35s ease}
-  .word .fill.shu{color:var(--shu)}
-  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
-
-  .hint{font-size:14px;color:var(--muted);min-height:18px;text-align:center;transition:color .2s}
-  .hint.ok{color:#fffbcf;font-weight:700}
-  .hint.bad{color:#ffe5a8;font-weight:700}
-
-  .piece{
-    --bgp:var(--piece);
-    background:var(--bgp);color:#2a2350;
-    font-weight:800;font-size:30px;letter-spacing:1.5px;
-    padding:18px 24px;border-radius:18px;
-    box-shadow:var(--shadow);position:relative;min-width:120px;text-align:center;
+  .infoCard h3{margin:0 0 4px;font-size:18px;display:flex;gap:8px;align-items:center}
+  .infoCard .sub{color:var(--muted);font-size:13px;margin-bottom:8px}
+  .infoCard .who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .infoCard .who .mini{
+    background:#f1f5f9;border-radius:999px;padding:3px 10px 3px 4px;font-size:12px;font-weight:700;
+    display:flex;align-items:center;gap:4px;
   }
-  .piece::before,.piece::after{content:"";position:absolute;width:22px;height:22px;background:var(--bgp);
-    border-radius:50%;top:50%;transform:translateY(-50%)}
-  .piece::before{left:-11px} .piece::after{right:-11px}
-
-  .choices{display:flex;gap:18px;justify-content:center;align-items:center;padding:6px 4px 14px;flex-wrap:wrap}
-  .btn{appearance:none;border:0;cursor:pointer;font:inherit;font-weight:900;
-    font-size:34px;letter-spacing:2px;padding:18px 28px;border-radius:22px;color:#2a2350;
-    box-shadow:var(--shadow);transition:transform .08s ease, filter .15s ease;min-width:130px}
-  .btn:active{transform:translateY(2px) scale(.98)}
-  .btn.chu{background:linear-gradient(180deg,#fff09a,#ffc83b);color:#3a2a00}
-  .btn.shu{background:linear-gradient(180deg,#7be3ff,#06aed5);color:#04263a}
-  .btn.disabled{filter:grayscale(.4) opacity(.55);pointer-events:none}
-  .btn.flashOk{animation:flashOk .5s ease}
-  .btn.flashBad{animation:shake .4s ease}
-  @keyframes flashOk{0%{box-shadow:0 0 0 0 rgba(255,255,255,.7)}100%{box-shadow:0 0 0 22px rgba(255,255,255,0)}}
-  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
-
-  .collected{background:rgba(255,255,255,.96);color:#2a2350;border-radius:18px;padding:10px 12px;
-    box-shadow:0 2px 0 rgba(0,0,0,.1), 0 6px 18px rgba(0,0,0,.18);max-height:34vh;overflow-y:auto}
-  .collected h3{margin:0 0 8px;font-size:13px;color:#6b6792;text-transform:uppercase;letter-spacing:1px;font-weight:700}
-  .collected ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px}
-  .collected li{font-size:15px;font-weight:700;display:flex;align-items:baseline;gap:6px}
-  .collected li .k{font-size:11px;color:#6b6792;font-weight:600;min-width:54px}
-  .collected li .v.chu{color:#c9931d} .collected li .v.shu{color:#0683a0}
-  .collected:empty{display:none}
-
-  .toolbar{display:flex;gap:10px;justify-content:center;padding:4px 0 6px;flex-wrap:wrap}
-  .tool{appearance:none;border:0;background:rgba(255,255,255,.96);color:#2a2350;
-    font:inherit;font-weight:700;font-size:13px;padding:10px 16px;border-radius:999px;
-    box-shadow:var(--shadow);cursor:pointer}
-  .tool:active{transform:translateY(1px)}
-  .tool .ic{margin-right:6px}
-
-  /* ---------------- GAME 2 (word search / филворд) ---------------- */
-  .g2Wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:4px 0 6px}
-  .g2Grid{display:grid;grid-template-columns:repeat(var(--cols), 1fr);gap:2px;
-    background:rgba(255,255,255,.97);padding:6px;border-radius:12px;
-    width:100%;max-width:440px;box-shadow:var(--shadow)}
-  .g2Grid .cell{
-    appearance:none;border:0;font:inherit;font-weight:700;
-    font-size:clamp(10px, 3.2vw, 18px);
-    color:#2a2350;background:#fff5e6;
-    border-radius:4px;cursor:pointer;padding:0;
-    aspect-ratio:1 / 1;
-    display:flex;align-items:center;justify-content:center;
-    transition:background .12s, transform .08s;
-  }
-  .g2Grid .cell:active{transform:scale(.94)}
-  .g2Grid .cell.start{background:#06aed5;color:#fff}
-  .g2Grid .cell.found{background:#aaf683;color:#214d12}
-  .g2Grid .cell.miss{background:#ffb1b1;animation:shake .35s ease}
-
-  .g2Words{
-    list-style:none;margin:0;padding:10px 12px;
-    background:rgba(255,255,255,.97);color:#2a2350;
-    border-radius:14px;
-    display:grid;grid-template-columns:repeat(auto-fill, minmax(108px, 1fr));
-    gap:4px 10px;font-size:13px;width:100%;max-width:440px;
-    box-shadow:var(--shadow);
-  }
-  .g2Words .w{font-weight:700;padding:2px 0}
-  .g2Words .w.done{text-decoration:line-through;opacity:.45;color:#1c7a32}
-
-  /* ---------------- Finish & Fireworks ---------------- */
-  .finish{position:fixed;inset:0;background:rgba(40,0,5,.62);
-    display:none;align-items:center;justify-content:center;padding:20px;z-index:5}
-  .finish.show{display:flex}
-  .finish #fw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-  .finish .card{position:relative;z-index:1;background:#fff;color:#2a2350;
-    border-radius:22px;padding:22px;text-align:center;max-width:340px;width:100%;box-shadow:var(--shadow)}
-  .finish h2{margin:0 0 6px;font-size:22px}
-  .finish p{margin:6px 0 14px;color:#6b6792}
-  .finish .big{font-size:46px;margin:8px 0}
-  .finish .again{background:linear-gradient(180deg,#ffd86b,#ffae3b);color:#3a2a00;
-    border:0;font-weight:900;font-size:16px;padding:14px 24px;border-radius:14px;
-    box-shadow:var(--shadow);cursor:pointer}
-
-  @media (min-width:520px){
-    .word{font-size:38px}
-    .piece{font-size:36px;padding:22px 32px}
-    .btn{font-size:42px;padding:22px 36px}
-    .g2Grid .cell{font-size:18px}
-  }
+  .infoCard .who .miniAv{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.18)}
 </style>
 </head>
 <body>
   <header>
-    <button class="backBtn" id="backBtn" hidden aria-label="Назад">←</button>
-    <h1 class="title" id="title">Игры для тренировки</h1>
-    <p class="rule" id="rule">Выбери игру и тренируйся!</p>
+    <div class="logo"><span class="globe">🌍</span> Race Around the World</div>
+    <button class="iconBtn" id="settingsBtn" aria-label="Settings">⚙</button>
   </header>
 
   <main>
-    <!-- MENU -->
-    <section class="screen menu" id="screenMenu">
-      <div class="menuCards">
-        <button class="menuCard" data-go="game1">
-          <div class="emoji">🧩</div>
-          <div>
-            <div class="t">Собери слова с <span style="color:#c9931d">ЧУ</span> и <span style="color:#0683a0">ЩУ</span></div>
-            <div class="d">Соедини половинки слов</div>
-          </div>
-        </button>
-        <button class="menuCard" data-go="game2">
-          <div class="emoji">🔎</div>
-          <div>
-            <div class="t">Филворд — Я ищу</div>
-            <div class="d">Найди слова с ЧА, ЩА, ЧУ и ЩУ</div>
-          </div>
-        </button>
-      </div>
-    </section>
+    <div class="mapWrap">
+      <div id="map"></div>
+      <div class="legend"><span class="dot"></span><span>Sydney → London · <span id="stopsCount">0</span> capitals</span></div>
+    </div>
 
-    <!-- GAME 1: pair matching -->
-    <section class="screen" id="screenGame1" hidden>
-      <div class="scoreRow">
-        <div class="score">Очки: <b id="score1">0</b></div>
-        <div class="progress" id="prog1">1 / 18</div>
-      </div>
-      <div class="g1Stage">
-        <div class="word" id="word" aria-live="polite"></div>
-        <div class="piece" id="piece">—</div>
-        <div class="hint" id="hint">Какое сочетание подходит?</div>
-        <div class="choices">
-          <button class="btn chu" id="chuBtn" aria-label="ЧУ">ЧУ</button>
-          <button class="btn shu" id="shuBtn" aria-label="ЩУ">ЩУ</button>
+    <aside class="players">
+      <div class="playersHead">
+        <div>
+          <div class="t">Players</div>
+          <div class="h">Tap “Won!” when a player wins an offline game</div>
         </div>
       </div>
-      <div class="toolbar">
-        <button class="tool" id="speakBtn"><span class="ic">🔊</span>Сказать</button>
-        <button class="tool" id="reset1Btn"><span class="ic">↺</span>Заново</button>
-      </div>
-      <section class="collected" id="collected">
-        <h3>Собранные слова</h3>
-        <ul id="collectedList"></ul>
-      </section>
-    </section>
-
-    <!-- GAME 2: word search -->
-    <section class="screen" id="screenGame2" hidden>
-      <div class="scoreRow">
-        <div class="score">Найдено: <b id="g2Progress">0 / 19</b></div>
-        <div class="progress" id="g2Hint">Нажми на первую и последнюю букву</div>
-      </div>
-      <div class="g2Wrap">
-        <div class="g2Grid" id="g2Grid" style="--cols:14;--rows:15"></div>
-        <ul class="g2Words" id="g2Words"></ul>
-        <div class="toolbar">
-          <button class="tool" id="reset2Btn"><span class="ic">↺</span>Новый филворд</button>
-        </div>
-      </div>
-    </section>
+      <ul class="playerList" id="playerList"></ul>
+      <button class="addBtn" id="addPlayerBtn">＋ Add player</button>
+    </aside>
   </main>
 
-  <div class="finish" id="finish" role="dialog" aria-modal="true">
-    <canvas id="fw" aria-hidden="true"></canvas>
-    <div class="card">
-      <div class="big" id="finishEmoji">🎆</div>
-      <h2 id="finishTitle">Молодец!</h2>
-      <p id="finishText">Ты собрал все слова.</p>
-      <button class="again" id="againBtn">Сыграть ещё</button>
+  <!-- Welcome / setup modal -->
+  <div class="modal" id="welcomeModal">
+    <div class="modalCard">
+      <h2>🌍 Race Around the World</h2>
+      <p>Whoever wins a game in real life moves one capital closer to London. First to land in London wins the whole race!</p>
+      <div class="pickerLabel">Players</div>
+      <div class="setupList" id="setupList"></div>
+      <button class="ghost" id="addSetupBtn" style="width:100%">＋ Add a player</button>
+      <div style="height:14px"></div>
+      <button class="cta" id="startBtn" disabled>Start the race 🚀</button>
     </div>
   </div>
 
+  <!-- Edit / add player modal -->
+  <div class="modal" id="editModal">
+    <div class="modalCard">
+      <h2 id="editTitle">Add player</h2>
+      <input class="field" id="editName" placeholder="Name" maxlength="14" />
+      <div class="pickerLabel">Pick an animal</div>
+      <div class="emojiPicker" id="editEmoji"></div>
+      <div class="pickerLabel">Pick a color</div>
+      <div class="colorPicker" id="editColor"></div>
+      <div class="modalActions">
+        <button class="ghost" id="editCancelBtn">Cancel</button>
+        <button class="danger" id="editDeleteBtn" hidden>Delete</button>
+        <button class="primary" id="editSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal" id="settingsModal">
+    <div class="modalCard">
+      <h2>⚙ Settings</h2>
+      <div class="btnRow">
+        <button class="ghost" id="undoBtn">↶ Undo last move</button>
+        <button class="ghost" id="fitBtn">🌐 Fit map to route</button>
+        <button class="danger" id="resetBtn">↺ Reset everything</button>
+        <button class="primary" id="closeSettingsBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capital info popover -->
+  <div class="info" id="info">
+    <div class="infoCard">
+      <h3 id="infoTitle"></h3>
+      <div class="sub" id="infoSub"></div>
+      <div class="who" id="infoWho"></div>
+      <div style="height:10px"></div>
+      <button class="ghost" id="infoCloseBtn" style="width:100%">Close</button>
+    </div>
+  </div>
+
+  <!-- Celebration -->
+  <div class="celebrate" id="celebrate">
+    <canvas id="fw" aria-hidden="true"></canvas>
+    <div class="celebrateCard">
+      <div class="trophy" id="celebrateEmoji">🏆</div>
+      <h2 id="celebrateTitle">Winner!</h2>
+      <p id="celebrateText"></p>
+      <button class="cta" id="celebrateBtn">Continue</button>
+    </div>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+  /* ====================== Route data ====================== */
+  const ROUTE = [
+    {name:"Sydney",      country:"Australia",     lat:-33.8688, lon:151.2093, flag:"🇦🇺"},
+    {name:"Jakarta",     country:"Indonesia",     lat: -6.2088, lon:106.8456, flag:"🇮🇩"},
+    {name:"Kuala Lumpur",country:"Malaysia",      lat:  3.1390, lon:101.6869, flag:"🇲🇾"},
+    {name:"Singapore",   country:"Singapore",     lat:  1.3521, lon:103.8198, flag:"🇸🇬"},
+    {name:"Bangkok",     country:"Thailand",      lat: 13.7563, lon:100.5018, flag:"🇹🇭"},
+    {name:"Phnom Penh",  country:"Cambodia",      lat: 11.5564, lon:104.9282, flag:"🇰🇭"},
+    {name:"Hanoi",       country:"Vietnam",       lat: 21.0285, lon:105.8542, flag:"🇻🇳"},
+    {name:"Manila",      country:"Philippines",   lat: 14.5995, lon:120.9842, flag:"🇵🇭"},
+    {name:"Taipei",      country:"Taiwan",        lat: 25.0330, lon:121.5654, flag:"🇹🇼"},
+    {name:"Tokyo",       country:"Japan",         lat: 35.6762, lon:139.6503, flag:"🇯🇵"},
+    {name:"Seoul",       country:"South Korea",   lat: 37.5665, lon:126.9780, flag:"🇰🇷"},
+    {name:"Beijing",     country:"China",         lat: 39.9042, lon:116.4074, flag:"🇨🇳"},
+    {name:"Ulaanbaatar", country:"Mongolia",      lat: 47.8864, lon:106.9057, flag:"🇲🇳"},
+    {name:"Astana",      country:"Kazakhstan",    lat: 51.1605, lon: 71.4704, flag:"🇰🇿"},
+    {name:"Tashkent",    country:"Uzbekistan",    lat: 41.2995, lon: 69.2401, flag:"🇺🇿"},
+    {name:"Kabul",       country:"Afghanistan",   lat: 34.5553, lon: 69.2075, flag:"🇦🇫"},
+    {name:"Islamabad",   country:"Pakistan",      lat: 33.6844, lon: 73.0479, flag:"🇵🇰"},
+    {name:"Kathmandu",   country:"Nepal",         lat: 27.7172, lon: 85.3240, flag:"🇳🇵"},
+    {name:"New Delhi",   country:"India",         lat: 28.6139, lon: 77.2090, flag:"🇮🇳"},
+    {name:"Tehran",      country:"Iran",          lat: 35.6892, lon: 51.3890, flag:"🇮🇷"},
+    {name:"Baghdad",     country:"Iraq",          lat: 33.3152, lon: 44.3661, flag:"🇮🇶"},
+    {name:"Riyadh",      country:"Saudi Arabia",  lat: 24.7136, lon: 46.6753, flag:"🇸🇦"},
+    {name:"Cairo",       country:"Egypt",         lat: 30.0444, lon: 31.2357, flag:"🇪🇬"},
+    {name:"Athens",      country:"Greece",        lat: 37.9838, lon: 23.7275, flag:"🇬🇷"},
+    {name:"Ankara",      country:"Turkey",        lat: 39.9334, lon: 32.8597, flag:"🇹🇷"},
+    {name:"Sofia",       country:"Bulgaria",      lat: 42.6977, lon: 23.3219, flag:"🇧🇬"},
+    {name:"Bucharest",   country:"Romania",       lat: 44.4268, lon: 26.1025, flag:"🇷🇴"},
+    {name:"Budapest",    country:"Hungary",       lat: 47.4979, lon: 19.0402, flag:"🇭🇺"},
+    {name:"Vienna",      country:"Austria",       lat: 48.2082, lon: 16.3738, flag:"🇦🇹"},
+    {name:"Prague",      country:"Czechia",       lat: 50.0755, lon: 14.4378, flag:"🇨🇿"},
+    {name:"Berlin",      country:"Germany",       lat: 52.5200, lon: 13.4050, flag:"🇩🇪"},
+    {name:"Warsaw",      country:"Poland",        lat: 52.2297, lon: 21.0122, flag:"🇵🇱"},
+    {name:"Stockholm",   country:"Sweden",        lat: 59.3293, lon: 18.0686, flag:"🇸🇪"},
+    {name:"Copenhagen",  country:"Denmark",       lat: 55.6761, lon: 12.5683, flag:"🇩🇰"},
+    {name:"Brussels",    country:"Belgium",       lat: 50.8503, lon:  4.3517, flag:"🇧🇪"},
+    {name:"Paris",       country:"France",        lat: 48.8566, lon:  2.3522, flag:"🇫🇷"},
+    {name:"London",      country:"United Kingdom",lat: 51.5074, lon: -0.1278, flag:"🇬🇧"},
+  ];
+
+  const EMOJIS = ["🦁","🐯","🐶","🐱","🦊","🐼","🐻","🐨","🐸","🦄","🐰","🦒","🐢","🐬","🦋","🐙","🦉","🐧","🐵","🐔","🦕","🦓","🐳","🦊"];
+  const COLORS = ["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#8b5cf6","#ec4899"];
+
+  /* ====================== State ====================== */
+  const KEY = "atw_v1";
   const $ = id => document.getElementById(id);
+  const uid = () => "p" + Math.random().toString(36).slice(2,9);
 
-  /* ====================== Router ====================== */
-  const HEADERS = {
-    menu:  {t:"Игры для тренировки", r:"Выбери игру и тренируйся!"},
-    game1: {t:"<span style='color:#ffd43b'>ЧУ</span> и <span style='color:#06aed5'>ЩУ</span> — собери слова",
-            r:"ЧУ и ЩУ всегда пишутся с буквой У. Соедини половинки!"},
-    game2: {t:"Филворд: ЧА, ЩА, ЧУ, ЩУ",
-            r:"Найди все слова. Они идут по горизонтали и вертикали, могут быть справа налево."},
-  };
+  let state = load() || {players:[], history:[], winners:[]};
 
-  function setScreen(name){
-    document.querySelectorAll(".screen").forEach(s => s.hidden = true);
-    $("screen" + name[0].toUpperCase() + name.slice(1)).hidden = false;
-    $("title").innerHTML = HEADERS[name].t;
-    $("rule").textContent = HEADERS[name].r;
-    $("backBtn").hidden = (name === "menu");
-    stopFireworks();
-    $("finish").classList.remove("show");
-    if (name === "game1") Game1.start();
-    if (name === "game2") Game2.start();
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
   }
 
-  function route(){
-    const h = (location.hash.replace("#","") || "menu");
-    setScreen(["menu","game1","game2"].includes(h) ? h : "menu");
+  /* ====================== Map ====================== */
+  let map, polyline, stopMarkers = [];
+  let playerMarkers = new Map(); // playerId -> L.marker
+
+  function initMap(){
+    map = L.map("map", {
+      worldCopyJump: true,
+      zoomControl: true,
+      attributionControl: true,
+    });
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: "abcd",
+      maxZoom: 10,
+      minZoom: 2,
+    }).addTo(map);
+
+    // Route polyline
+    const coords = ROUTE.map(c => [c.lat, c.lon]);
+    polyline = L.polyline(coords, {
+      color: "#f97316", weight: 4, opacity: .85, dashArray: "6,8", lineJoin: "round",
+    }).addTo(map);
+
+    // Stop markers
+    ROUTE.forEach((c, i) => {
+      const isStart = i === 0;
+      const isEnd = i === ROUTE.length - 1;
+      const cls = isStart ? "stopDotInner start" : isEnd ? "stopDotInner end" : "stopDotInner";
+      const icon = L.divIcon({
+        className: "stopDot",
+        html: `<div class="${cls}"></div>`,
+        iconSize: [0,0],
+        iconAnchor: [0,0],
+      });
+      const m = L.marker([c.lat, c.lon], { icon, zIndexOffset: i === 0 || i === ROUTE.length-1 ? 200 : 100 });
+      m.on("click", () => showInfo(i));
+      m.addTo(map);
+      stopMarkers.push(m);
+    });
+
+    fitToRoute();
+    $("stopsCount").textContent = ROUTE.length;
   }
 
-  window.addEventListener("hashchange", route);
-  document.addEventListener("click", e => {
-    const card = e.target.closest("[data-go]");
-    if (card){ location.hash = "#" + card.dataset.go; }
-  });
-  $("backBtn").addEventListener("click", () => { location.hash = "#menu"; });
-
-  /* ====================== Speak ====================== */
-  function speak(text){
-    try{
-      if (!("speechSynthesis" in window)) return;
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "ru-RU"; u.rate = 0.9;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(u);
-    }catch(e){}
+  function fitToRoute(){
+    map.fitBounds(L.latLngBounds(ROUTE.map(c => [c.lat, c.lon])), { padding: [30, 30] });
   }
 
-  /* ====================== Fireworks ====================== */
+  function offsetFor(i, total){
+    if (total <= 1) return [0, 0];
+    const angle = (i / total) * Math.PI * 2 - Math.PI/2;
+    const r = 0.9;
+    return [Math.sin(angle) * r, Math.cos(angle) * r];
+  }
+
+  function positionFor(player){
+    const base = ROUTE[player.position];
+    const group = state.players.filter(p => p.position === player.position);
+    const idx = group.findIndex(p => p.id === player.id);
+    const [dLat, dLon] = offsetFor(idx, group.length);
+    return [base.lat + dLat, base.lon + dLon];
+  }
+
+  function makeIcon(p){
+    const king = p.position === ROUTE.length - 1 ? " king" : "";
+    return L.divIcon({
+      className: "pt",
+      html: `<div class="ptInner${king}" style="background:${p.color}">${p.emoji}</div>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    });
+  }
+
+  function renderPlayerMarkers(){
+    // Remove markers for players no longer in state
+    for (const [id, m] of [...playerMarkers]){
+      if (!state.players.find(p => p.id === id)){
+        map.removeLayer(m);
+        playerMarkers.delete(id);
+      }
+    }
+    // Add/refresh markers for current players
+    for (const p of state.players){
+      const [lat, lon] = positionFor(p);
+      let m = playerMarkers.get(p.id);
+      if (!m){
+        m = L.marker([lat, lon], { icon: makeIcon(p), zIndexOffset: 1000 });
+        m.on("click", () => showInfo(p.position));
+        m.addTo(map);
+        playerMarkers.set(p.id, m);
+      } else {
+        m.setIcon(makeIcon(p));
+        // Don't move during animation; caller handles that
+        if (!m._animating) m.setLatLng([lat, lon]);
+      }
+    }
+  }
+
+  function animateAdvance(playerId){
+    const p = state.players.find(x => x.id === playerId);
+    const marker = playerMarkers.get(playerId);
+    if (!p || !marker) { renderPlayerMarkers(); return; }
+    const start = marker.getLatLng();
+    const [endLat, endLon] = positionFor(p);
+    const startMs = performance.now();
+    const dur = 1500;
+    marker._animating = true;
+    function tick(now){
+      const e = Math.min(1, (now - startMs) / dur);
+      const ease = e < 0.5 ? 2*e*e : 1 - Math.pow(-2*e + 2, 2)/2;
+      const lat = start.lat + (endLat - start.lat) * ease;
+      const lon = start.lng + (endLon - start.lng) * ease;
+      marker.setLatLng([lat, lon]);
+      if (e < 1) requestAnimationFrame(tick);
+      else {
+        marker._animating = false;
+        marker.setIcon(makeIcon(p));
+        renderPlayerMarkers();
+      }
+    }
+    requestAnimationFrame(tick);
+    // Pan map gently toward the destination
+    map.panTo([endLat, endLon], { animate: true, duration: 1.4 });
+  }
+
+  /* ====================== Player list UI ====================== */
+  function renderPlayerList(){
+    const ul = $("playerList");
+    ul.innerHTML = "";
+    if (state.players.length === 0){
+      const li = document.createElement("li");
+      li.style.padding = "16px";
+      li.style.textAlign = "center";
+      li.style.color = "var(--muted)";
+      li.textContent = "No players yet. Tap “Add player” to begin.";
+      ul.append(li);
+      return;
+    }
+    for (const p of state.players){
+      const isDone = p.position >= ROUTE.length - 1;
+      const cap = ROUTE[p.position];
+      const pct = (p.position / (ROUTE.length - 1)) * 100;
+      const li = document.createElement("li");
+      li.className = "playerRow";
+      li.innerHTML = `
+        <div class="avatar${isDone ? ' king' : ''}" style="background:${p.color}">${p.emoji}</div>
+        <div class="pInfo">
+          <div class="pName">${escapeHtml(p.name)}
+            <button class="editBtn" data-edit="${p.id}" aria-label="Edit">✎</button>
+          </div>
+          <div class="pMeta"><span class="flag">${cap.flag}</span> ${cap.name} · ${p.position}/${ROUTE.length - 1}</div>
+          <div class="progressBar"><div style="width:${pct}%"></div></div>
+        </div>
+        <button class="winBtn ${isDone ? 'done' : ''}" data-win="${p.id}" ${isDone ? 'disabled' : ''}>
+          <span class="ic">${isDone ? '🏆' : '🏁'}</span>${isDone ? 'Done' : 'Won!'}
+        </button>
+      `;
+      ul.append(li);
+    }
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  /* ====================== Advance / Undo ====================== */
+  function advance(playerId){
+    const p = state.players.find(x => x.id === playerId);
+    if (!p || p.position >= ROUTE.length - 1) return;
+    state.history.push({playerId, from: p.position, to: p.position + 1, ts: Date.now()});
+    p.position += 1;
+    const reached = p.position === ROUTE.length - 1;
+    if (reached && !state.winners.includes(p.id)) state.winners.push(p.id);
+    save();
+    animateAdvance(playerId);
+    renderPlayerList();
+    if (reached) setTimeout(() => celebrate(p), 1100);
+  }
+
+  function undo(){
+    const last = state.history.pop();
+    if (!last) return;
+    const p = state.players.find(x => x.id === last.playerId);
+    if (!p) { save(); return; }
+    p.position = last.from;
+    state.winners = state.winners.filter(id => id !== p.id || p.position >= ROUTE.length - 1);
+    save();
+    renderPlayerList();
+    renderPlayerMarkers();
+  }
+
+  /* ====================== Setup flow ====================== */
+  let editingId = null;
+  let editPick = { emoji: EMOJIS[0], color: COLORS[0] };
+
+  function openEdit(playerId){
+    editingId = playerId;
+    const p = playerId ? state.players.find(x => x.id === playerId) : null;
+    $("editTitle").textContent = p ? "Edit player" : "Add player";
+    $("editName").value = p ? p.name : "";
+    $("editDeleteBtn").hidden = !p;
+    editPick.emoji = p ? p.emoji : pickEmoji();
+    editPick.color = p ? p.color : pickColor();
+    renderEmojiPicker();
+    renderColorPicker();
+    $("editModal").classList.add("show");
+    setTimeout(() => $("editName").focus(), 50);
+  }
+  function closeEdit(){
+    $("editModal").classList.remove("show");
+    editingId = null;
+  }
+  function pickEmoji(){
+    const used = new Set(state.players.map(p => p.emoji));
+    return EMOJIS.find(e => !used.has(e)) || EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+  }
+  function pickColor(){
+    const used = new Set(state.players.map(p => p.color));
+    return COLORS.find(c => !used.has(c)) || COLORS[Math.floor(Math.random()*COLORS.length)];
+  }
+  function renderEmojiPicker(){
+    const wrap = $("editEmoji");
+    wrap.innerHTML = "";
+    EMOJIS.forEach(e => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = e;
+      if (e === editPick.emoji) b.classList.add("sel");
+      b.addEventListener("click", () => { editPick.emoji = e; renderEmojiPicker(); });
+      wrap.append(b);
+    });
+  }
+  function renderColorPicker(){
+    const wrap = $("editColor");
+    wrap.innerHTML = "";
+    COLORS.forEach(c => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.style.background = c;
+      if (c === editPick.color) b.classList.add("sel");
+      b.addEventListener("click", () => { editPick.color = c; renderColorPicker(); });
+      wrap.append(b);
+    });
+  }
+  function saveEdit(){
+    const name = $("editName").value.trim() || "Player";
+    if (editingId){
+      const p = state.players.find(x => x.id === editingId);
+      if (p){ p.name = name; p.emoji = editPick.emoji; p.color = editPick.color; }
+    } else {
+      state.players.push({id: uid(), name, emoji: editPick.emoji, color: editPick.color, position: 0});
+    }
+    save();
+    closeEdit();
+    refreshAll();
+    if ($("welcomeModal").classList.contains("show")) renderSetupList();
+  }
+  function deletePlayer(){
+    if (!editingId) return;
+    const m = playerMarkers.get(editingId);
+    if (m){ map.removeLayer(m); playerMarkers.delete(editingId); }
+    state.players = state.players.filter(p => p.id !== editingId);
+    state.winners = state.winners.filter(id => id !== editingId);
+    state.history = state.history.filter(h => h.playerId !== editingId);
+    save();
+    closeEdit();
+    refreshAll();
+    if ($("welcomeModal").classList.contains("show")) renderSetupList();
+  }
+
+  function renderSetupList(){
+    const list = $("setupList");
+    list.innerHTML = "";
+    if (state.players.length === 0){
+      const empty = document.createElement("div");
+      empty.style.color = "var(--muted)";
+      empty.style.fontSize = "13px";
+      empty.textContent = "No players yet.";
+      list.append(empty);
+    }
+    state.players.forEach(p => {
+      const chip = document.createElement("div");
+      chip.className = "setupChip";
+      chip.innerHTML = `<span class="av" style="background:${p.color}">${p.emoji}</span><span>${escapeHtml(p.name)}</span><button class="rm" data-edit="${p.id}" aria-label="Edit">✎</button>`;
+      list.append(chip);
+    });
+    $("startBtn").disabled = state.players.length === 0;
+  }
+
+  /* ====================== Capital info ====================== */
+  function showInfo(i){
+    const c = ROUTE[i];
+    $("infoTitle").textContent = `${c.flag} ${c.name}`;
+    $("infoSub").textContent = `${c.country} · Stop ${i} of ${ROUTE.length - 1}`;
+    const who = state.players.filter(p => p.position === i);
+    const w = $("infoWho");
+    w.innerHTML = "";
+    if (who.length){
+      const lbl = document.createElement("div");
+      lbl.style.fontSize = "12px";
+      lbl.style.color = "var(--muted)";
+      lbl.style.width = "100%";
+      lbl.textContent = "Currently here:";
+      w.append(lbl);
+      who.forEach(p => {
+        const m = document.createElement("span");
+        m.className = "mini";
+        m.innerHTML = `<span class="miniAv" style="background:${p.color}">${p.emoji}</span>${escapeHtml(p.name)}`;
+        w.append(m);
+      });
+    }
+    $("info").classList.add("show");
+  }
+
+  /* ====================== Celebration / Fireworks ====================== */
   const fw = {canvas:null, ctx:null, parts:[], running:false, raf:0, nextLaunch:0,
-    colors:["#ffd43b","#06aed5","#ff6b6b","#a3f7bf","#fff09a","#ffffff","#ffafcc","#9b85ff"]};
-  function sizeCanvas(){
+    colors:["#fbbf24","#06aed5","#ef4444","#22c55e","#a78bfa","#ec4899","#fff","#fde047"]};
+  function sizeFw(){
     if (!fw.canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    fw.canvas.width  = fw.canvas.clientWidth  * dpr;
+    fw.canvas.width = fw.canvas.clientWidth * dpr;
     fw.canvas.height = fw.canvas.clientHeight * dpr;
     fw.ctx.setTransform(dpr,0,0,dpr,0,0);
   }
-  function explode(x, y, color){
-    const count = 36 + Math.floor(Math.random()*24);
+  function fwExplode(x, y, color){
+    const n = 40 + Math.floor(Math.random()*24);
     const baseSpeed = 2 + Math.random()*1.6;
-    for (let i = 0; i < count; i++){
-      const a = (i / count) * Math.PI * 2 + Math.random()*0.1;
+    for (let i = 0; i < n; i++){
+      const a = (i/n) * Math.PI * 2 + Math.random()*0.1;
       const s = baseSpeed * (0.6 + Math.random()*0.8);
-      fw.parts.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:1,
-        decay:0.012 + Math.random()*0.012, size:1.5 + Math.random()*2, color});
+      fw.parts.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
+        life:1, decay:0.012 + Math.random()*0.012, size:1.5 + Math.random()*2, color});
     }
   }
-  function launchRandom(){
+  function fwLaunch(){
     const w = fw.canvas.clientWidth, h = fw.canvas.clientHeight;
-    const x = w*(0.1 + Math.random()*0.8);
-    const y = h*(0.15 + Math.random()*0.4);
-    explode(x, y, fw.colors[Math.floor(Math.random()*fw.colors.length)]);
+    fwExplode(w*(0.1 + Math.random()*0.8), h*(0.15 + Math.random()*0.4),
+              fw.colors[Math.floor(Math.random()*fw.colors.length)]);
   }
   function fwTick(){
     if (!fw.running) return;
@@ -336,9 +726,9 @@
     ctx.fillRect(0,0,w,h);
     const now = performance.now();
     if (now >= fw.nextLaunch){
-      launchRandom();
-      if (Math.random() < 0.35) setTimeout(launchRandom, 120);
-      fw.nextLaunch = now + 350 + Math.random()*450;
+      fwLaunch();
+      if (Math.random() < 0.4) setTimeout(fwLaunch, 130);
+      fw.nextLaunch = now + 350 + Math.random()*420;
     }
     const next = [];
     for (const p of fw.parts){
@@ -359,319 +749,94 @@
     fw.parts = next;
     fw.raf = requestAnimationFrame(fwTick);
   }
-  function startFireworks(){
+  function startFw(){
     fw.canvas = $("fw");
     fw.ctx = fw.canvas.getContext("2d");
-    sizeCanvas();
+    sizeFw();
     fw.parts.length = 0;
     fw.running = true;
     fw.nextLaunch = performance.now();
-    setTimeout(launchRandom, 0);
-    setTimeout(launchRandom, 180);
-    setTimeout(launchRandom, 360);
+    setTimeout(fwLaunch, 0);
+    setTimeout(fwLaunch, 200);
+    setTimeout(fwLaunch, 400);
     fwTick();
   }
-  function stopFireworks(){
+  function stopFw(){
     fw.running = false;
     if (fw.raf) cancelAnimationFrame(fw.raf);
     if (fw.ctx && fw.canvas) fw.ctx.clearRect(0,0,fw.canvas.width,fw.canvas.height);
     fw.parts.length = 0;
   }
-  window.addEventListener("resize", () => { if (fw.running) sizeCanvas(); });
+  window.addEventListener("resize", () => { if (fw.running) sizeFw(); });
 
-  function showFinish(title, text, emoji, onAgain){
-    $("finishTitle").textContent = title;
-    $("finishText").textContent = text;
-    $("finishEmoji").textContent = emoji;
-    $("finish").classList.add("show");
-    $("againBtn").onclick = onAgain;
-    requestAnimationFrame(startFireworks);
+  function celebrate(player){
+    const place = state.winners.indexOf(player.id) + 1;
+    const place_text = place === 1 ? "First to London!" :
+                       place === 2 ? "Second to London!" :
+                       place === 3 ? "Third to London!" :
+                       `Made it to London (place ${place})!`;
+    $("celebrateEmoji").textContent = place === 1 ? "🏆" : place === 2 ? "🥈" : place === 3 ? "🥉" : "🎉";
+    $("celebrateTitle").textContent = `${player.emoji} ${player.name}`;
+    $("celebrateText").textContent = place_text;
+    $("celebrate").classList.add("show");
+    requestAnimationFrame(startFw);
   }
 
-  /* ====================== GAME 1: pair matching ====================== */
-  const Game1 = (() => {
-    const WORDS = [
-      {piece:"ДЕСА",  pair:"chu", pos:"pre"},   // ЧУДЕСА
-      {piece:"ЛОК",   pair:"chu", pos:"pre"},   // ЧУЛОК
-      {piece:"ЖОЙ",   pair:"chu", pos:"pre"},   // ЧУЖОЙ
-      {piece:"ТКИЙ",  pair:"chu", pos:"pre"},   // ЧУТКИЙ
-      {piece:"ХО",    pair:"chu", pos:"post"},  // ХОЧУ
-      {piece:"КРИ",   pair:"chu", pos:"post"},  // КРИЧУ
-      {piece:"СКА",   pair:"chu", pos:"post"},  // СКАЧУ
-      {piece:"ПЛА",   pair:"chu", pos:"post"},  // ПЛАЧУ
-      {piece:"СТУ",   pair:"chu", pos:"post"},  // СТУЧУ
-      {piece:"ЛЕ",    pair:"chu", pos:"post"},  // ЛЕЧУ
-      {piece:"РИТЬ",  pair:"shu", pos:"pre"},   // ЩУРИТЬ
-      {piece:"ПЛЫЙ",  pair:"shu", pos:"pre"},   // ЩУПЛЫЙ
-      {piece:"И",     pair:"shu", pos:"post"},  // ИЩУ
-      {piece:"ПИ",    pair:"shu", pos:"post"},  // ПИЩУ
-      {piece:"ТРЕ",   pair:"shu", pos:"post"},  // ТРЕЩУ
-      {piece:"ТА",    pair:"shu", pos:"post"},  // ТАЩУ
-      {piece:"ПЛЕ",   pair:"shu", pos:"post"},  // ПЛЕЩУ
-      {piece:"ПРО",   pair:"shu", pos:"post"},  // ПРОЩУ
-    ];
-    const PIECE_COLORS = ["var(--piece)","var(--piece2)","var(--piece3)","var(--piece4)","var(--piece5)"];
-    const shuffle = a => { const x=a.slice(); for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];} return x; };
-    const state = {order:[], idx:0, score:0, collected:[], locked:false};
-    const wordEl = $("word"), pieceEl = $("piece"), hintEl = $("hint"),
-          chuBtn = $("chuBtn"), shuBtn = $("shuBtn"),
-          scoreEl = $("score1"), progEl = $("prog1"),
-          listEl = $("collectedList");
+  /* ====================== Refresh ====================== */
+  function refreshAll(){
+    renderPlayerList();
+    renderPlayerMarkers();
+  }
 
-    function render(){
-      const w = state.order[state.idx];
-      if (!w){ done(); return; }
-      pieceEl.textContent = w.piece;
-      pieceEl.style.setProperty("--bgp", PIECE_COLORS[state.idx % PIECE_COLORS.length]);
-      wordEl.innerHTML = "";
-      const slot = document.createElement("span");
-      slot.className = "slot"; slot.id = "slot"; slot.textContent = "▢▢";
-      const fixed = document.createElement("span"); fixed.textContent = w.piece;
-      if (w.pos === "pre") wordEl.append(slot, fixed); else wordEl.append(fixed, slot);
-      hintEl.textContent = "Какое сочетание подходит?";
-      hintEl.className = "hint";
-      chuBtn.classList.remove("disabled","flashOk","flashBad");
-      shuBtn.classList.remove("disabled","flashOk","flashBad");
-      progEl.textContent = `${state.idx + 1} / ${state.order.length}`;
-      state.locked = false;
-    }
-    function fullWord(w){
-      return w.pos === "pre" ? (w.pair === "chu" ? "ЧУ" : "ЩУ") + w.piece
-                             : w.piece + (w.pair === "chu" ? "ЧУ" : "ЩУ");
-    }
-    function choose(which){
-      if (state.locked) return;
-      const w = state.order[state.idx];
-      const correct = w.pair === which;
-      state.locked = true;
-      const btn = which === "chu" ? chuBtn : shuBtn;
-      const other = which === "chu" ? shuBtn : chuBtn;
-      if (correct){
-        state.score += 1;
-        scoreEl.textContent = state.score;
-        btn.classList.add("flashOk");
-        other.classList.add("disabled");
-        const slot = $("slot");
-        slot.textContent = which === "chu" ? "ЧУ" : "ЩУ";
-        slot.className = "fill " + (which === "shu" ? "shu" : "");
-        hintEl.textContent = "Верно! " + fullWord(w);
-        hintEl.className = "hint ok";
-        state.collected.push({piece:w.piece, word:fullWord(w), pair:w.pair});
-        renderCollected();
-        speak(fullWord(w));
-        setTimeout(() => { state.idx += 1; render(); }, 1100);
-      } else {
-        btn.classList.add("flashBad","disabled");
-        hintEl.textContent = "Не то — попробуй другое сочетание.";
-        hintEl.className = "hint bad";
-        setTimeout(() => { state.locked = false; }, 350);
-      }
-    }
-    function renderCollected(){
-      listEl.innerHTML = "";
-      state.collected.slice().reverse().forEach(c => {
-        const li = document.createElement("li");
-        const k = document.createElement("span"); k.className = "k"; k.textContent = c.piece;
-        const v = document.createElement("span"); v.className = "v " + (c.pair === "shu" ? "shu" : "chu"); v.textContent = c.word;
-        li.append(k, v); listEl.append(li);
-      });
-    }
-    function done(){
-      const total = state.order.length;
-      const perfect = state.score === total;
-      showFinish(perfect ? "Отлично!" : "Молодец!",
-                 `Правильных слов: ${state.score} из ${total}.`,
-                 perfect ? "🏆" : "🎆",
-                 () => { stopFireworks(); $("finish").classList.remove("show"); start(); });
-    }
-    function start(){
-      state.order = shuffle(WORDS);
-      state.idx = 0; state.score = 0; state.collected = []; state.locked = false;
-      scoreEl.textContent = 0;
-      listEl.innerHTML = "";
-      render();
-    }
-    chuBtn.addEventListener("click", () => choose("chu"));
-    shuBtn.addEventListener("click", () => choose("shu"));
-    $("reset1Btn").addEventListener("click", start);
-    $("speakBtn").addEventListener("click", () => {
-      const w = state.order[state.idx];
-      if (w) speak(w.piece);
-    });
-    document.addEventListener("keydown", e => {
-      if ($("screenGame1").hidden) return;
-      if (e.key === "1" || e.key.toLowerCase() === "ч") choose("chu");
-      if (e.key === "2" || e.key.toLowerCase() === "щ") choose("shu");
-    });
-    return {start};
-  })();
+  /* ====================== Events ====================== */
+  document.addEventListener("click", e => {
+    const winId = e.target.closest("[data-win]")?.dataset.win;
+    if (winId){ advance(winId); return; }
+    const editId = e.target.closest("[data-edit]")?.dataset.edit;
+    if (editId){ openEdit(editId); return; }
+  });
+  $("addPlayerBtn").addEventListener("click", () => openEdit(null));
+  $("addSetupBtn").addEventListener("click", () => openEdit(null));
+  $("startBtn").addEventListener("click", () => {
+    $("welcomeModal").classList.remove("show");
+    setTimeout(fitToRoute, 200);
+  });
+  $("editCancelBtn").addEventListener("click", closeEdit);
+  $("editSaveBtn").addEventListener("click", saveEdit);
+  $("editDeleteBtn").addEventListener("click", deletePlayer);
+  $("editName").addEventListener("keydown", e => { if (e.key === "Enter") saveEdit(); });
 
-  /* ====================== GAME 2: word search (филворд) ====================== */
-  const Game2 = (() => {
-    const WORDS = ["ЧАЙНИК","ВОРЧУН","КОЩУНСТВО","ПОЩАДА","ЧАСОВОЙ","ЧУДАК","ЧУТКИЙ",
-                   "ГАЛЧАТА","ОБЕЩАТЬ","ПРОЩАТЬ","ВКУСНОТИЩА","ЖЕМЧУГ","КЕТЧУП","МОЛЧУН",
-                   "ГУЩА","ПОДАЧА","ПРИЩУР","ЧУШЬ","ЧУТЬЁ"];
-    const SET = new Set(WORDS);
-    const ROWS = 15, COLS = 14;
-    const DIRS = [{dr:0,dc:1},{dr:0,dc:-1},{dr:1,dc:0}];
-    const ALPHA = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯЁ";
-    const gridEl = $("g2Grid"), wordsEl = $("g2Words"), progEl = $("g2Progress"), hintEl = $("g2Hint");
-    let grid = null, found = null, sel = null;
+  $("settingsBtn").addEventListener("click", () => $("settingsModal").classList.add("show"));
+  $("closeSettingsBtn").addEventListener("click", () => $("settingsModal").classList.remove("show"));
+  $("undoBtn").addEventListener("click", () => { undo(); $("settingsModal").classList.remove("show"); });
+  $("fitBtn").addEventListener("click", () => { fitToRoute(); $("settingsModal").classList.remove("show"); });
+  $("resetBtn").addEventListener("click", () => {
+    if (!confirm("Reset everything? All players and progress will be cleared.")) return;
+    state = {players:[], history:[], winners:[]};
+    save();
+    for (const [id, m] of playerMarkers){ map.removeLayer(m); }
+    playerMarkers.clear();
+    refreshAll();
+    $("settingsModal").classList.remove("show");
+    $("welcomeModal").classList.add("show");
+    renderSetupList();
+  });
 
-    function tryBuild(){
-      const g = Array.from({length: ROWS}, () => Array(COLS).fill(null));
-      const ws = WORDS.slice().sort((a,b) => b.length - a.length);
-      for (const word of ws){
-        let ok = false;
-        for (let t = 0; t < 250 && !ok; t++){
-          const d = DIRS[Math.floor(Math.random()*DIRS.length)];
-          const r0 = Math.floor(Math.random()*ROWS);
-          const c0 = Math.floor(Math.random()*COLS);
-          const r1 = r0 + d.dr*(word.length-1);
-          const c1 = c0 + d.dc*(word.length-1);
-          if (r1 < 0 || r1 >= ROWS || c1 < 0 || c1 >= COLS) continue;
-          let fits = true;
-          for (let i = 0; i < word.length; i++){
-            const r = r0 + d.dr*i, c = c0 + d.dc*i;
-            if (g[r][c] !== null && g[r][c] !== word[i]) { fits = false; break; }
-          }
-          if (!fits) continue;
-          for (let i = 0; i < word.length; i++){
-            g[r0 + d.dr*i][c0 + d.dc*i] = word[i];
-          }
-          ok = true;
-        }
-        if (!ok) return null;
-      }
-      for (let r = 0; r < ROWS; r++){
-        for (let c = 0; c < COLS; c++){
-          if (g[r][c] === null) g[r][c] = ALPHA[Math.floor(Math.random()*ALPHA.length)];
-        }
-      }
-      return g;
-    }
+  $("infoCloseBtn").addEventListener("click", () => $("info").classList.remove("show"));
+  $("info").addEventListener("click", e => { if (e.target.id === "info") $("info").classList.remove("show"); });
 
-    function build(){
-      for (let i = 0; i < 50; i++){
-        const g = tryBuild();
-        if (g) return g;
-      }
-      return tryBuild();
-    }
-
-    function cellEl(r, c){
-      return gridEl.children[r * COLS + c];
-    }
-
-    function tap(r, c){
-      const el = cellEl(r, c);
-      if (el.classList.contains("found")) {
-        // Tapping on found cells just clears any pending selection
-        clearSelection();
-        return;
-      }
-      if (!sel){
-        sel = {r, c};
-        el.classList.add("start");
-        return;
-      }
-      if (sel.r === r && sel.c === c){
-        clearSelection();
-        return;
-      }
-      if (sel.r !== r && sel.c !== c){
-        clearSelection();
-        sel = {r, c};
-        el.classList.add("start");
-        return;
-      }
-      const dr = Math.sign(r - sel.r), dc = Math.sign(c - sel.c);
-      const len = Math.max(Math.abs(r - sel.r), Math.abs(c - sel.c)) + 1;
-      let str = "";
-      const cells = [];
-      for (let i = 0; i < len; i++){
-        const rr = sel.r + dr*i, cc = sel.c + dc*i;
-        str += grid[rr][cc];
-        cells.push({r:rr, c:cc});
-      }
-      const rev = str.split("").reverse().join("");
-      let match = null;
-      if (SET.has(str) && !found.has(str)) match = str;
-      else if (SET.has(rev) && !found.has(rev)) match = rev;
-
-      cellEl(sel.r, sel.c).classList.remove("start");
-      sel = null;
-
-      if (match){
-        found.add(match);
-        for (const {r, c} of cells) cellEl(r, c).classList.add("found");
-        renderWords();
-        renderProgress();
-        speak(match);
-        if (found.size === WORDS.length){
-          setTimeout(() => {
-            showFinish("Все найдены!",
-                       `Найдено слов: ${found.size} из ${WORDS.length}.`,
-                       "🏆",
-                       () => { stopFireworks(); $("finish").classList.remove("show"); start(); });
-          }, 450);
-        }
-      } else {
-        for (const {r, c} of cells) cellEl(r, c).classList.add("miss");
-        setTimeout(() => {
-          for (const {r, c} of cells) cellEl(r, c).classList.remove("miss");
-        }, 400);
-      }
-    }
-
-    function clearSelection(){
-      if (sel){ cellEl(sel.r, sel.c).classList.remove("start"); sel = null; }
-    }
-
-    function renderGrid(){
-      gridEl.style.setProperty("--cols", COLS);
-      gridEl.style.setProperty("--rows", ROWS);
-      gridEl.innerHTML = "";
-      for (let r = 0; r < ROWS; r++){
-        for (let c = 0; c < COLS; c++){
-          const b = document.createElement("button");
-          b.className = "cell";
-          b.textContent = grid[r][c];
-          b.addEventListener("click", () => tap(r, c));
-          gridEl.append(b);
-        }
-      }
-    }
-
-    function renderWords(){
-      wordsEl.innerHTML = "";
-      for (const w of WORDS){
-        const li = document.createElement("li");
-        li.className = "w" + (found.has(w) ? " done" : "");
-        li.textContent = w;
-        wordsEl.append(li);
-      }
-    }
-
-    function renderProgress(){
-      progEl.textContent = `${found.size} / ${WORDS.length}`;
-    }
-
-    function start(){
-      grid = build();
-      found = new Set();
-      sel = null;
-      renderGrid();
-      renderWords();
-      renderProgress();
-    }
-
-    $("reset2Btn").addEventListener("click", start);
-    return {start};
-  })();
+  $("celebrateBtn").addEventListener("click", () => {
+    stopFw();
+    $("celebrate").classList.remove("show");
+  });
 
   /* ====================== Boot ====================== */
-  route();
+  initMap();
+  refreshAll();
+  if (state.players.length === 0){
+    renderSetupList();
+    $("welcomeModal").classList.add("show");
+  }
 </script>
 </body>
 </html>
